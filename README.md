@@ -6,7 +6,7 @@
   <a href="README.ru.md"><img src="https://img.shields.io/badge/ru_readme-blue" alt="ru_readme"></a>
 </p>
 
-<h1 align="center">OnyxKernel</h1>
+<h1 align="center">OnyxBoot</h1>
 
 <p align="center">
 <pre class="not-prose" style="text-align:center;font-family:monospace;">
@@ -23,7 +23,7 @@
                            ▒▒▒▒▒▒               
 </pre>
 </p>
-<p align="center"><em>Minimalist RISC-V 64-bit kernel written in freestanding Rust</em></p>
+<p align="center"><em>Minimalist RISC-V 64-bit bootloader written in freestanding C++</em></p>
 
 ----
 

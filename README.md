@@ -6,7 +6,17 @@
   <a href="README.ru.md"><img src="https://img.shields.io/badge/ru_readme-blue" alt="ru_readme"></a>
 </p>
 
-<h1 align="center">OnyxBoot</h1>
+<h1 align="center">    ███████                                     
+  ███▒▒▒▒▒███                                   
+ ███     ▒▒███ ████████   █████ ████ █████ █████
+▒███      ▒███▒▒███▒▒███ ▒▒███ ▒███ ▒▒███ ▒▒███ 
+▒███      ▒███ ▒███ ▒███  ▒███ ▒███  ▒▒▒█████▒  
+▒▒███     ███  ▒███ ▒███  ▒███ ▒███   ███▒▒▒███ 
+ ▒▒▒███████▒   ████ █████ ▒▒███████  █████ █████
+   ▒▒▒▒▒▒▒    ▒▒▒▒ ▒▒▒▒▒   ▒▒▒▒▒███ ▒▒▒▒▒ ▒▒▒▒▒ 
+                           ███ ▒███             
+                          ▒▒██████              
+                           ▒▒▒▒▒▒               </h1>
 <p align="center"><em>Minimalist RISC-V 64-bit bootloader written in freestanding C++</em></p>
 
 ----

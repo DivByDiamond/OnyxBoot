@@ -23,7 +23,7 @@
                            ▒▒▒▒▒▒               
 </pre>
 </p>
-<p align="center"><em>Minimalist RISC-V 64-bit bootloader written in freestanding C++</em></p>
+<p align="center"><em>Minimalist RISC-V 64-bit kernel written in freestanding Rust</em></p>
 
 ----
 

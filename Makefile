@@ -2,7 +2,7 @@ CROSS ?= riscv64-unknown-elf
 CC = $(CROSS)-gcc
 OBJCOPY = $(CROSS)-objcopy
 
-CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany \
+CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany \
     -Os \
     -ffunction-sections -fdata-sections \
     -fomit-frame-pointer -fno-ident -g0 \

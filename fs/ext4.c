@@ -30,6 +30,7 @@ static bool rd_blk(blk_read_t rd, void* priv, uint64_t plba, uint32_t b, uint32_
 static uint32_t bmap_ext(blk_read_t rd, void* priv, uint64_t plba, uint32_t bs,
                          const uint8_t* ino, uint32_t lb, uint32_t dsz,
                          bool extents, uint8_t* tmp) {
+    (void)dsz; /* dsz is reserved for future extent-size validation. */
     if (extents) {
         const uint8_t* eh = ino + 40;
         uint16_t depth = erd16(eh + 6), entries = erd16(eh + 2);

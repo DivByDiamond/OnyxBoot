@@ -89,6 +89,7 @@ static uint32_t fat32_next_clus(FAT32* fs, uint32_t clus, uint8_t* tmp) {
 }
 
 static bool fat32_read_clus(FAT32* fs, uint32_t clus, uint8_t* buf, uint8_t* tmp) {
+    (void)tmp; /* tmp is reserved for future double-buffering / prefetch. */
     uint32_t lba = fs->data_sec + (clus - 2) * fs->sec_per_clus;
     for (uint32_t i = 0; i < fs->sec_per_clus; i++)
         if (!fs->read(lba + i, buf + i * 512, fs->priv)) return false;

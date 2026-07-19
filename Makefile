@@ -11,7 +11,7 @@ CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany \
 LDFLAGS = -T linker.ld -nostdlib \
     -Wl,--gc-sections -Wl,--strip-all -Wl,-n
 
-SRCS = src/boot_entry.c src/boot_main.c fs/fat.c fs/ext4.c
+SRCS = src/boot_entry.c src/boot_main.c src/string.c fs/fat.c fs/ext4.c
 
 all: bootloader.bin
 

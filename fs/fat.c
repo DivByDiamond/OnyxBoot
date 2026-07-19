@@ -14,6 +14,12 @@ static inline uint32_t rd32(const uint8_t* p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
            ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
+static inline uint64_t rd64(const uint8_t* p) {
+    /* GPT fields (PartitionEntryLBA, partition StartingLBA/EndingLBA) are
+     * little-endian uint64. Reading them through rd32 truncates the high
+     * 32 bits and breaks boot on any disk whose GPT lives above 2 TiB. */
+    return (uint64_t)rd32(p) | ((uint64_t)rd32(p + 4) << 32);
+}
 
 /* Try GPT first, then MBR. Return partition start LBA. */
 static bool find_fat_part(blk_read_t read, void* priv, uint64_t* start) {
@@ -24,20 +30,21 @@ static bool find_fat_part(blk_read_t read, void* priv, uint64_t* start) {
         if (!read(1, sec, priv)) return false;
         if (sec[0] == 'E' && sec[1] == 'F' && sec[2] == 'I' && sec[3] == ' ' &&
             sec[4] == 'P' && sec[5] == 'A' && sec[6] == 'R' && sec[7] == 'T') {
-            uint64_t elba = rd32(sec + 72);
+            uint64_t elba = rd64(sec + 72);
             uint32_t num = rd32(sec + 80);
             uint32_t esz = rd32(sec + 84);
             if (esz < 56) esz = 56;
             uint32_t eper = 512 / esz;
             for (uint32_t i = 0; i < num; i++) {
                 uint8_t ent[512];
-                uint32_t secn = (uint32_t)(elba + i / eper);
+                /* elba can legitimately exceed 4 GiB; keep it 64-bit. */
+                uint64_t secn = elba + i / eper;
                 if (i % eper == 0 && !read(secn, ent, priv)) return false;
                 uint32_t off = (i % eper) * esz;
                 bool match = true;
                 for (int j = 0; j < 16; j++)
                     if (ent[off + j] != FAT32_GUID[j]) { match = false; break; }
-                if (match) { *start = rd32(ent + off + 32); return true; }
+                if (match) { *start = rd64(ent + off + 32); return true; }
             }
         }
     }

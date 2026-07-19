@@ -27,16 +27,17 @@ SECTIONS
     } :rw
 
     .bss : {
-        . = ALIGN(4);
+        . = ALIGN(16);
         _sbss = .;
         *(.bss .bss.*)
-        . = ALIGN(4);
+        . = ALIGN(16);
         _ebss = .;
     } :rw
 
     . = ALIGN(16);
     _stack_start = .;
     . += 0x2000;
+    . = ALIGN(16);
     _stack_end = .;
 
     _end = .;

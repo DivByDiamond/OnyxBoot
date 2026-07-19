@@ -212,3 +212,94 @@ static inline int fdt_find_sdhci(const void* blob, mmio_dev* out, int max) {
     n += fdt_find_mmio(blob, out + n, max - n, "generic-sdhci");
     return n;
 }
+
+/* ------------------------------------------------------------------------- */
+/* Helpers for safe kernel placement.                                        */
+/* ------------------------------------------------------------------------- */
+
+/* Total size of the FDT blob, in bytes, straight from the header
+ * (offset 4, big-endian uint32). Used to carve out the FDT region
+ * itself when reserving memory for the kernel buffer. */
+static inline uint64_t fdt_totalsize(const void* blob) {
+    if (!blob) return 0;
+    return (uint64_t)fdt_rd32((const uint8_t*)blob, 4);
+}
+
+/* Find linux,initrd-start / linux,initrd-end in /chosen. The properties
+ * may be 4 or 8 bytes depending on #address-cells. Returns false if no
+ * initrd is described. */
+static inline bool fdt_find_initrd(const void* blob, uint64_t* start, uint64_t* end) {
+    fdt_ctx ctx;
+    if (fdt_init(blob, &ctx) < 0) return false;
+    const char* nn;
+    while ((nn = fdt_begin_node(&ctx)) != (const char*)-1) {
+        bool is_chosen = fdt_str_eq(nn, "chosen");
+        bool fs = false, fe = false;
+        uint64_t s = 0, e = 0;
+        fdt_prop p;
+        int r;
+        while ((r = fdt_next_prop(&ctx, &p))) {
+            if (r < 0) return false;
+            if (!is_chosen) continue;
+            if (fdt_str_eq(p.name, "linux,initrd-start")) {
+                if (p.len == 4) s = be32((const uint32_t*)p.val);
+                else if (p.len == 8) {
+                    const uint32_t* v = (const uint32_t*)p.val;
+                    s = ((uint64_t)be32(v) << 32) | (uint64_t)be32(v + 1);
+                }
+                fs = true;
+            } else if (fdt_str_eq(p.name, "linux,initrd-end")) {
+                if (p.len == 4) e = be32((const uint32_t*)p.val);
+                else if (p.len == 8) {
+                    const uint32_t* v = (const uint32_t*)p.val;
+                    e = ((uint64_t)be32(v) << 32) | (uint64_t)be32(v + 1);
+                }
+                fe = true;
+            }
+        }
+        if (is_chosen) {
+            if (fs && fe && e > s) { *start = s; *end = e; return true; }
+            return false;
+        }
+    }
+    return false;
+}
+
+/* Callback type for visiting child nodes of /reserved-memory.
+ * Return false to stop iteration. */
+typedef bool (*fdt_region_cb)(uint64_t base, uint64_t size, void* arg);
+
+/* Iterate over all child nodes of /reserved-memory that carry a reg
+ * property. Each region is delivered to cb as (base, size). Nodes
+ * without a reg property (e.g. ones that only set no-map) are skipped
+ * silently. */
+static inline void fdt_for_each_reserved(const void* blob, fdt_region_cb cb, void* arg) {
+    fdt_ctx ctx;
+    if (fdt_init(blob, &ctx) < 0) return;
+    const char* nn;
+    int rsv_depth = -1;
+    while ((nn = fdt_begin_node(&ctx)) != (const char*)-1) {
+        int d = ctx.depth - 1;
+        /* If we just stepped out of /reserved-memory, stop tracking. */
+        if (rsv_depth >= 0 && d <= rsv_depth) rsv_depth = -1;
+        if (rsv_depth < 0) {
+            if (fdt_str_eq(nn, "reserved-memory")) rsv_depth = d;
+            continue;
+        }
+        /* We are inside /reserved-memory: read reg from this child. */
+        fdt_prop p;
+        int r;
+        uint64_t base = 0, size = 0;
+        bool has_reg = false;
+        while ((r = fdt_next_prop(&ctx, &p))) {
+            if (r < 0) return;
+            if (fdt_str_eq(p.name, "reg")) {
+                fdt_read_reg(&ctx, d, p.val, &base, &size);
+                has_reg = true;
+            }
+        }
+        if (has_reg && size > 0) {
+            if (!cb(base, size, arg)) return;
+        }
+    }
+}

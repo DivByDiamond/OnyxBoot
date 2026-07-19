@@ -17,11 +17,24 @@ void _start(void) {
         "la t1, _ebss\n"
         "3:\n"
         "bgeu t0, t1, 4f\n"
-        "sw zero, 0(t0)\n"
-        "addi t0, t0, 4\n"
+        /*
+         * _sbss and _ebss are both 16-byte aligned (see linker.ld),
+         * so 8-byte stores (sd) always fit cleanly inside [t0, t1).
+         * Using sd instead of sw halves the loop iterations and keeps
+         * the last chunk safe regardless of section alignment.
+         */
+        "sd zero, 0(t0)\n"
+        "addi t0, t0, 8\n"
         "j 3b\n"
         "4:\n"
+        /*
+         * Per RISC-V calling convention, sp must be 16-byte aligned
+         * at function entry. _stack_end is already aligned in the
+         * linker script, but mask explicitly so the invariant holds
+         * even if the symbol ever drifts.
+         */
         "la sp, _stack_end\n"
+        "andi sp, sp, -16\n"
         "mv a0, s0\n"
         "call boot_main\n"
         "5:\n"

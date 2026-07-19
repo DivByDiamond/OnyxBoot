@@ -19,6 +19,12 @@ static inline uint16_t erd16(const void* p) {
     const uint8_t* b = (const uint8_t*)p;
     return (uint16_t)b[0] | ((uint16_t)b[1]<<8);
 }
+static inline uint64_t erd64(const void* p) {
+    /* GPT PartitionEntryLBA and partition StartingLBA/EndingLBA are
+     * little-endian uint64. Truncating to 32 bits breaks boot on any
+     * disk whose GPT lives above 2 TiB. */
+    return (uint64_t)erd32(p) | ((uint64_t)erd32((const uint8_t*)p + 4) << 32);
+}
 
 static bool rd_blk(blk_read_t rd, void* priv, uint64_t plba, uint32_t b, uint32_t bs, uint8_t* buf) {
     uint32_t s = bs / 512;
@@ -112,18 +118,20 @@ static bool find_ext4_part(blk_read_t read, void* priv, uint64_t* start) {
         if (!read(1, sec, priv)) return false;
         if (sec[0] == 'E' && sec[1] == 'F' && sec[2] == 'I' && sec[3] == ' ' &&
             sec[4] == 'P' && sec[5] == 'A' && sec[6] == 'R' && sec[7] == 'T') {
-            uint32_t num = erd32(sec + 80), esz = erd32(sec + 84), eper = 512 / esz;
-            uint64_t elba = erd32(sec + 72);
+            uint32_t num = erd32(sec + 80), esz = erd32(sec + 84);
+            uint64_t elba = erd64(sec + 72);
             if (esz < 56) esz = 56;
+            uint32_t eper = 512 / esz;
             for (uint32_t i = 0; i < num; i++) {
                 uint8_t ent[512];
-                uint32_t sn = (uint32_t)(elba + i / eper);
+                /* elba can legitimately exceed 4 GiB; keep it 64-bit. */
+                uint64_t sn = elba + i / eper;
                 if (i % eper == 0 && !read(sn, ent, priv)) return false;
                 uint32_t off = (i % eper) * esz;
                 bool match = true;
                 for (int j = 0; j < 16; j++)
                     if (ent[off + j] != EXT4_GUID[j]) { match = false; break; }
-                if (match) { *start = erd32(ent + off + 32); return true; }
+                if (match) { *start = erd64(ent + off + 32); return true; }
             }
         }
     }

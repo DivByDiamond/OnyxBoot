@@ -1,0 +1,13 @@
+name: OnyxBoot CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-riscv64 gcc-riscv64-unknown-elf genimage dosfstools e2fsprogs
+      - name: Build
+        run: make -j$(nproc)
+      - name: Run tests
+        run: ./test/test_all.sh

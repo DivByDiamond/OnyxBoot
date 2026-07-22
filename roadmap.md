@@ -40,14 +40,14 @@
 - [x] Рефакторинг include/ (8→6 файлов)
 - [x] Все 6 code review фиксов (fdt_sdhci, goto, ALIGN, kernel_buf, UART, g_vq)
 - [x] QEMU тест FAT32 загрузки (MBR + FAT32, make test)
-- [ ] QEMU тест ext4 загрузки
+- [x] QEMU тест ext4 загрузки
 
 ## v0.7 - Тестирование
-- [ ] QEMU тест GPT+FAT32
-- [ ] QEMU тест MBR+FAT32 (done — тест v0.6)
-- [ ] QEMU тест MBR+ext4
-- [ ] CI workflow исправлен (Ubuntu apt + FAT32 образ)
-- [ ] Проверка fallback FAT32→ext4 (без FAT раздела)
+- [x] QEMU тест GPT+FAT32 — `test/test_gpt_fat32.sh`
+- [x] QEMU тест MBR+FAT32 — `test/run_qemu.sh` (тест v0.6)
+- [x] QEMU тест MBR+ext4 — `test/test_ext4.sh`
+- [x] CI workflow исправлен (Ubuntu apt + FAT32 образ, добавлены mtools/parted)
+- [x] Проверка fallback FAT32→ext4 — `test/test_fallback.sh`
 
 ## v1.0 - Релиз
 - [ ] Проверка на реальном Milk-V Duo S

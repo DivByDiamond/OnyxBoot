@@ -27,4 +27,7 @@ clean:
 test:
 	./test/run_qemu.sh
 
-.PHONY: all clean test
+test-all:
+	./test/test_all.sh
+
+.PHONY: all clean test test-all

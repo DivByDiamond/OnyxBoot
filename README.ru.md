@@ -92,13 +92,23 @@ make CROSS=riscv64-unknown-elf
 
 ## Тестирование
 
+### MBR+FAT32
 ```console
-$ bash test/run_qemu.sh
+$ make test
+# или: bash test/run_qemu.sh
 ```
 
-Создаёт образ диска 4 МБ с kernel.elf в нулевом секторе, запускает QEMU с
-VirtIO block. Ожидаемый вывод:
+### Все тесты (GPT+FAT32, MBR+ext4, fallback)
+```console
+$ make test-all
+# или: bash test/test_all.sh
+```
 
+Запускает четыре QEMU-сценария: MBR+FAT32, GPT+FAT32, MBR+ext4 и fallback
+FAT32→ext4. Каждый создаёт образ диска, загружает kernel.elf и проверяет
+наличие "Hello from test kernel!" в выводе UART.
+
+Ожидаемый вывод (MBR+FAT32):
 ```
 OnyxBoot v0.4 [riscv-virtio,qemu]
 
@@ -111,7 +121,7 @@ jumping to kernel
 Hello from test kernel!
 ```
 
-Также есть CI в `.github/workflows/test.yml`.
+CI в `.github/workflows/test.yml` собирает и прогоняет все четыре теста на каждый push.
 
 ----
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# test_all.sh — run all OnyxBoot QEMU tests
+# test_all.sh - run all OnyxBoot QEMU tests
 #
 # Runs every test in sequence and reports PASS/FAIL for each.
 # Exits non-zero if any test failed.

@@ -1,5 +1,5 @@
 #!/bin/sh
-# test_gpt_fat32.sh — QEMU test: GPT partition table + FAT32 filesystem
+# test_gpt_fat32.sh - QEMU test: GPT partition table + FAT32 filesystem
 set -e
 
 if command -v riscv64-unknown-elf-gcc >/dev/null 2>&1; then
@@ -43,7 +43,7 @@ if grep -q "Hello from test kernel!" "$TEST_DIR/qemu_output.log"; then
     rm -f "$TEST_DIR/qemu_output.log" "$TEST_DIR/test.img" "$TEST_DIR/kernel.elf"
     exit 0
 else
-    echo "[FAIL] GPT+FAT32 — \"Hello from test kernel!\" not found"
+    echo "[FAIL] GPT+FAT32 - \"Hello from test kernel!\" not found"
     echo "--- QEMU output ---"
     cat "$TEST_DIR/qemu_output.log"
     echo "-------------------"

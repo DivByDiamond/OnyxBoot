@@ -1,5 +1,5 @@
 #!/bin/sh
-# test_fallback.sh — QEMU test: GPT disk with ONLY ext4 (no FAT32).
+# test_fallback.sh - QEMU test: GPT disk with ONLY ext4 (no FAT32).
 # Bootloader must fall back from FAT32→ext4 and successfully load the kernel.
 set -e
 
@@ -53,7 +53,7 @@ if grep -q "Hello from test kernel!" "$TEST_DIR/qemu_output.log"; then
     rm -f "$TEST_DIR/qemu_output.log" "$TEST_DIR/test.img" "$TEST_DIR/kernel.elf"
     exit 0
 else
-    echo "[FAIL] fallback — \"Hello from test kernel!\" not found"
+    echo "[FAIL] fallback - \"Hello from test kernel!\" not found"
     echo "--- QEMU output ---"
     cat "$TEST_DIR/qemu_output.log"
     echo "-------------------"

@@ -284,6 +284,9 @@ static inline void fdt_for_each_reserved(const void* blob, fdt_region_cb cb, voi
         if (rsv_depth >= 0 && d <= rsv_depth) rsv_depth = -1;
         if (rsv_depth < 0) {
             if (fdt_str_eq(nn, "reserved-memory")) rsv_depth = d;
+            /* Skip this node's properties so the token stream stays in sync. */
+            fdt_prop skip;
+            while (fdt_next_prop(&ctx, &skip)) { /* consume */ }
             continue;
         }
         /* We are inside /reserved-memory: read reg from this child. */

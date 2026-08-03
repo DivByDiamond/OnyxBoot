@@ -207,10 +207,15 @@ bool ext4_read_file(blk_read_t read, void* priv, const char* path,
     *size = fsz;
     uint32_t remain = fsz, off = 0, lb = 0;
     while (remain) {
-        uint32_t pb = bmap_ext(read, priv, part_lba, bs, ino, lb, fsz, extents, tmp);
-        if (!pb || !rd_blk(read, priv, part_lba, pb, bs, tmp)) return false;
         uint32_t n = remain < bs ? remain : bs;
-        for (uint32_t i = 0; i < n; i++) buf[off + i] = tmp[i];
+        uint32_t pb = bmap_ext(read, priv, part_lba, bs, ino, lb, fsz, extents, tmp);
+        if (pb == 0) {
+            /* Sparse file: unallocated block reads as zeroes. */
+            for (uint32_t i = 0; i < n; i++) buf[off + i] = 0;
+        } else {
+            if (!rd_blk(read, priv, part_lba, pb, bs, tmp)) return false;
+            for (uint32_t i = 0; i < n; i++) buf[off + i] = tmp[i];
+        }
         off += n; remain -= n; lb++;
     }
     return true;

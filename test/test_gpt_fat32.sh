@@ -31,11 +31,11 @@ mkfs.fat -F 32 "$TEST_DIR/test.img" --offset=$part_start
 mcopy -i "$TEST_DIR/test.img"@@$((part_start * 512)) "$TEST_DIR/kernel.elf" ::kernel.elf
 
 echo "==> Starting QEMU (timeout 30s)"
-timeout 30 qemu-system-riscv64 -M virt -m 256M \
+{ sleep 2; printf '\n'; sleep 5; } | timeout 30 qemu-system-riscv64 -M virt -m 256M \
     -bios "$TOP_DIR/bootloader.bin" \
     -drive file="$TEST_DIR/test.img",format=raw,if=none,id=drive0 \
     -device virtio-blk-device,drive=drive0 \
-    -nographic -serial mon:stdio > "$TEST_DIR/qemu_output.log" 2>&1 || true
+    -nographic > "$TEST_DIR/qemu_output.log" 2>&1 || true
 
 echo "==> Checking output"
 if grep -q "Hello from test kernel!" "$TEST_DIR/qemu_output.log"; then

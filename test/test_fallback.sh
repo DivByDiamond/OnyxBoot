@@ -41,11 +41,11 @@ dd if="$TEST_DIR/ext4_part.img" of="$TEST_DIR/test.img" bs=512 seek=$part_start 
 rm -f "$TEST_DIR/ext4_part.img"
 
 echo "==> Starting QEMU (timeout 30s)"
-timeout 30 qemu-system-riscv64 -M virt -m 256M \
+{ sleep 2; printf '\n'; sleep 5; } | timeout 30 qemu-system-riscv64 -M virt -m 256M \
     -bios "$TOP_DIR/bootloader.bin" \
     -drive file="$TEST_DIR/test.img",format=raw,if=none,id=drive0 \
     -device virtio-blk-device,drive=drive0 \
-    -nographic -serial mon:stdio > "$TEST_DIR/qemu_output.log" 2>&1 || true
+    -nographic > "$TEST_DIR/qemu_output.log" 2>&1 || true
 
 echo "==> Checking output"
 if grep -q "Hello from test kernel!" "$TEST_DIR/qemu_output.log"; then

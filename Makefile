@@ -9,7 +9,10 @@
 # If you have the Linux-targeted `riscv64-linux-gnu-` (Arch's
 # `riscv64-linux-gnu-gcc`), bare-metal OnyxBoot won't link correctly —
 # install a bare-metal variant instead.
-CROSS ?= riscv64-elf
+CROSS ?= $(shell \
+  if command -v riscv64-elf-gcc >/dev/null 2>&1; then echo riscv64-elf; \
+  elif command -v riscv64-unknown-elf-gcc >/dev/null 2>&1; then echo riscv64-unknown-elf; \
+  else echo riscv64-elf; fi)
 CC = $(CROSS)-gcc
 OBJCOPY = $(CROSS)-objcopy
 

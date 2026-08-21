@@ -27,18 +27,18 @@ SRCS = src/boot_entry.c src/boot_main.c src/string.c fs/fat.c fs/ext4.c
 all: bootloader.bin
 
 bootloader.elf: $(SRCS)
-        $(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 bootloader.bin: bootloader.elf
-        $(OBJCOPY) -O binary $< $@
+	$(OBJCOPY) -O binary $< $@
 
 clean:
-        rm -f bootloader.elf bootloader.bin
+	rm -f bootloader.elf bootloader.bin
 
 test:
-        ./test/run_qemu.sh
+	./test/run_qemu.sh
 
 test-all:
-        ./test/test_all.sh
+	./test/test_all.sh
 
 .PHONY: all clean test test-all

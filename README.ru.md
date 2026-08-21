@@ -22,7 +22,7 @@ OnyxBoot - крошечный bare-metal загрузчик для RISC-V 64-bit
 ## Быстрый старт
 
 ```console
-$ make CROSS=riscv64-elf
+$ make                                          # по умолчанию CROSS=riscv64-elf
 $ qemu-system-riscv64 -M virt -m 256M -bios bootloader.bin \
     -drive file=disk.img,format=raw,if=none,id=drive0 \
     -device virtio-blk-device,drive=drive0 \
@@ -41,16 +41,21 @@ $ bash test/run_qemu.sh
 
 | Инструмент | Назначение |
 |-----------|-----------|
-| `riscv64-elf-g++` или `riscv64-unknown-elf-g++` | Кросс-компилятор |
+| `riscv64-elf-g++` (предпочтительно) или `riscv64-unknown-elf-g++` | Кросс-компилятор |
 | `riscv64-elf-objcopy` | Извлечение бинарника |
 | `make` | Сборка |
 | `qemu-system-riscv64` | Тестирование (опционально) |
 
-Сменить тулчейн:
+Сменить тулчейн (если у вас вариант `riscv64-unknown-elf-`):
 
 ```console
 make CROSS=riscv64-unknown-elf
 ```
+
+В Makefile по умолчанию `CROSS ?= riscv64-elf` — это соответствует
+основному bare-metal тулчейну (xpack-riscv-none-elf-gcc, RISC-V
+collaborations/riscv-gnu-toolchain). Если у вас установлен Debian-пакет
+`gcc-riscv64-unknown-elf`, переопределите как показано выше.
 
 ----
 

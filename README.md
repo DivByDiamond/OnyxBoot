@@ -48,7 +48,7 @@ First-stage loader for [OnyxOS](https://github.com/anomalyco/OnyxOS).
 ## Quick start
 
 ```console
-$ make CROSS=riscv64-elf
+$ make                                          # default: CROSS=riscv64-elf
 $ qemu-system-riscv64 -M virt -m 256M -bios bootloader.bin \
     -drive file=disk.img,format=raw,if=none,id=drive0 \
     -device virtio-blk-device,drive=drive0 \
@@ -67,16 +67,21 @@ $ bash test/run_qemu.sh
 
 | Tool | Purpose |
 |------|---------|
-| `riscv64-elf-g++` or `riscv64-unknown-elf-g++` | Cross-compiler |
+| `riscv64-elf-g++` (preferred) or `riscv64-unknown-elf-g++` | Cross-compiler |
 | `riscv64-elf-objcopy` | Binary extraction |
 | `make` | Build |
 | `qemu-system-riscv64` | Test (optional) |
 
-Override toolchain:
+Override toolchain (if you have the `riscv64-unknown-elf-` variant):
 
 ```console
 make CROSS=riscv64-unknown-elf
 ```
+
+The Makefile's default is `CROSS ?= riscv64-elf` — this matches the
+mainstream bare-metal toolchain (xpack-riscv-none-elf-gcc, RISC-V
+collaborations/riscv-gnu-toolchain). If you have Debian's
+`gcc-riscv64-unknown-elf` package instead, override as shown above.
 
 ----
 

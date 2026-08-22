@@ -1,3 +1,5 @@
+[![OnyxBoot CI](https://github.com/DivByDiamond/OnyxBoot/actions/workflows/test.yml/badge.svg)](https://github.com/DivByDiamond/OnyxBoot/actions/workflows/test.yml)
+
 <p align="center">
   <img src="https://img.shields.io/badge/platform-RISC--V%2064--bit-green" alt="RISC-V 64">
   <img src="https://img.shields.io/badge/language-C%2B%2B20-blue" alt="C++20">

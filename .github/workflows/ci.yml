@@ -1,0 +1,43 @@
+name: OnyxBoot Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+
+      - name: Build
+        run: make -j"$(nproc)" CROSS=riscv64-unknown-elf
+
+      - name: Assert artifacts
+        run: |
+          for f in bootloader.elf bootloader.bin; do
+            test -f "$f" || { echo "::error::$f missing"; exit 1; }
+            size=$(stat -c%s "$f")
+            echo "$f: $size bytes"
+            [ "$size" -gt 5120 ] || { echo "::error::$f too small ($size <= 5KB)"; exit 1; }
+          done
+
+      - name: Smoke — entry address
+        run: |
+          entry=$(riscv64-unknown-elf-readelf -h bootloader.elf | awk '/Entry point/ {print $4}')
+          echo "Entry point: $entry"
+          [ "$entry" = "0x80000000" ] || { echo "::error::unexpected entry point $entry"; exit 1; }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootloader
+          path: |
+            bootloader.elf
+            bootloader.bin

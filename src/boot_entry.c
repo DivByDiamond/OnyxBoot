@@ -41,8 +41,36 @@ void _start(void) {
         "wfi\n"
         "j 5b\n"
         "2:\n"
-        /* Secondary harts: park in WFI permanently */
-        "wfi\n"
-        "j 2b\n"
+        /*
+         * Secondary harts: poll the SMP release mailbox at 0x80100000.
+         * The previous "wfi; j 2b" loop parked secondaries FOREVER: WFI
+         * sleeps until an interrupt becomes pending and nothing ever
+         * targets a parked hart, so they never reached the kernel (the
+         * kernel's G_RELEASE spin was unreachable from this boot chain).
+         *
+         * Protocol (mirrors kernel arch/smp.rs):
+         *   - mailbox lives in the unused 2 MB gap between the bootloader
+         *     image @0x80000000 and the kernel @0x80200000, so neither side
+         *     can clobber it;
+         *   - once the kernel is up it stores the S-mode secondary entry
+         *     address there (release_secondary_harts);
+         *   - a parked hart observes a non-zero word, fences so that all
+         *     prior kernel initialization is visible, and jumps to it with
+         *     tp = hartid (the kernel's per-hart code reads tp).
+         */
+        "mv tp, a0\n"
+        "li t0, 0x80100000\n"
+        "1:\n"
+        "ld t1, 0(t0)\n"
+        "beqz t1, 1b\n"
+        /*
+         * fence rw,rw orders the mailbox load ahead of everything this
+         * hart does next, so all kernel initialization published before
+         * the mailbox store is visible after the jump.
+         */
+        "fence rw, rw\n"
+        "li t0, 0x80100000\n"
+        "ld t1, 0(t0)\n"
+        "jr t1\n"
     );
 }

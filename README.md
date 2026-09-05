@@ -43,7 +43,7 @@ Discovers hardware via FDT (device tree from a1 register), reads kernel.elf
 from VirtIO or SDHCI, parses ELF64, and jumps to entry point. ~9.5 KB binary,
 zero runtime dependencies.
 
-First-stage loader for [OnyxOS](https://github.com/anomalyco/OnyxOS).
+First-stage loader for [OnyxOS](https://github.com/DivByDiamond/OnyxOS).
 
 ----
 
@@ -80,7 +80,7 @@ Override toolchain (if you have the `riscv64-unknown-elf-` variant):
 make CROSS=riscv64-unknown-elf
 ```
 
-The Makefile's default is `CROSS ?= riscv64-elf` — this matches the
+The Makefile's default is `CROSS ?= riscv64-elf` - this matches the
 mainstream bare-metal toolchain (xpack-riscv-none-elf-gcc, RISC-V
 collaborations/riscv-gnu-toolchain). If you have Debian's
 `gcc-riscv64-unknown-elf` package instead, override as shown above.

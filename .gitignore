@@ -6,3 +6,5 @@ test/kernel.elf
 test/kernel.bin
 test/test.img
 onyxboot.bin
+
+.claude/

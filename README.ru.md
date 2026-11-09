@@ -15,7 +15,7 @@ OnyxBoot - крошечный bare-metal загрузчик для RISC-V 64-bit
 с VirtIO или SDHCI, парсит ELF64 и прыгает в точку входа. ~9.5 КБ бинарник,
 ноль зависимостей времени выполнения.
 
-Загрузчик первой ступени для [OnyxOS](https://github.com/anomalyco/OnyxOS).
+Загрузчик первой ступени для [OnyxOS](https://github.com/DivByDiamond/OnyxOS).
 
 ----
 

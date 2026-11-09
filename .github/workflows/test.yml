@@ -6,7 +6,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y qemu-system-riscv64 gcc-riscv64-unknown-elf genimage dosfstools e2fsprogs mtools parted
+        run: |
+          sudo apt-get update
+          # Ubuntu 26.04 split RISC-V QEMU into `qemu-system-riscv`; older
+          # runners ship qemu-system-riscv64 via `qemu-system-misc`.
+          if apt-cache show qemu-system-riscv >/dev/null 2>&1; then
+            QEMU_PKG=qemu-system-riscv
+          else
+            QEMU_PKG=qemu-system-misc
+          fi
+          sudo apt-get install -y "$QEMU_PKG" gcc-riscv64-unknown-elf genimage dosfstools e2fsprogs mtools parted
       - name: Build
         run: make -j$(nproc)
       - name: Run tests

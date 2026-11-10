@@ -143,7 +143,7 @@ static inline bool vio_probe(VirtIOBlock* d) {
         return vio_setup_queue_modern(d);
 }
 
-static inline bool vio_read_sector(VirtIOBlock* d, uint64_t lba, void* buf) {
+static inline bool vio_read_sectors(VirtIOBlock* d, uint64_t lba, uint32_t count, void* buf) {
     virtio_blk_req hdr;
     hdr.type = 0;
     hdr.ioprio = 0;
@@ -159,7 +159,7 @@ static inline bool vio_read_sector(VirtIOBlock* d, uint64_t lba, void* buf) {
 
     uint16_t d1 = (desc_idx + 1) % VIRTIO_QUEUE_SIZE;
     g_vq.desc[d1].addr  = (uint64_t)(uintptr_t)buf;
-    g_vq.desc[d1].len   = 512;
+    g_vq.desc[d1].len   = count * 512u;
     g_vq.desc[d1].flags = 3;
     g_vq.desc[d1].next  = (desc_idx + 2) % VIRTIO_QUEUE_SIZE;
 
@@ -182,6 +182,11 @@ static inline bool vio_read_sector(VirtIOBlock* d, uint64_t lba, void* buf) {
     d->last_used_idx = g_vq.used.idx;
 
     return status == 0;
+}
+
+/* Single-sector helper kept for callers that only ever need one sector. */
+static inline bool vio_read_sector(VirtIOBlock* d, uint64_t lba, void* buf) {
+    return vio_read_sectors(d, lba, 1, buf);
 }
 
 static inline void vio_init(VirtIOBlock* d, uint64_t base) {

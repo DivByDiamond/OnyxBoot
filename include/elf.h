@@ -29,13 +29,27 @@ typedef struct __attribute__((packed)) {
     uint64_t p_align;
 } elf64_phdr;
 
+/* Word-sized copies: the bootloader moves whole ELF images (megabytes) on
+ * a 64-bit hart, so an 8-byte stride cuts the dominant boot cost by ~8x.
+ * Alignment is checked once; unaligned buffers fall back to bytes. */
 static inline void elf_memcpy(uint8_t* dst, const uint8_t* src, uint64_t n) {
-    for (uint64_t i = 0; i < n; i++)
+    uint64_t i = 0;
+    if ((((uintptr_t)dst | (uintptr_t)src) & 7u) == 0) {
+        for (; i + 8 <= n; i += 8)
+            *(uint64_t*)(dst + i) = *(const uint64_t*)(src + i);
+    }
+    for (; i < n; i++)
         dst[i] = src[i];
 }
 
 static inline void elf_memset(uint8_t* dst, uint8_t c, uint64_t n) {
-    for (uint64_t i = 0; i < n; i++)
+    uint64_t i = 0;
+    uint64_t word = (uint64_t)c * 0x0101010101010101ull;
+    if (((uintptr_t)dst & 7u) == 0) {
+        for (; i + 8 <= n; i += 8)
+            *(uint64_t*)(dst + i) = word;
+    }
+    for (; i < n; i++)
         dst[i] = c;
 }
 

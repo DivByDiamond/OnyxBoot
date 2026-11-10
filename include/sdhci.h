@@ -167,6 +167,16 @@ static inline bool sdhci_read_sector(SDHCI* s, uint64_t lba, void* buf) {
     return sd_wait_int(s, INT_XFER_COMPLETE, 2000000);
 }
 
+/* Multi-sector read for the block layer. SDHCI multi-block mode is
+ * hardware-sensitive, so each sector still goes through one CMD17; the
+ * count-based API only spares the callers a loop. */
+static inline bool sdhci_read_sectors(SDHCI* s, uint64_t lba, uint32_t count, void* buf) {
+    uint8_t* dst = (uint8_t*)buf;
+    for (uint32_t i = 0; i < count; i++)
+        if (!sdhci_read_sector(s, lba + i, dst + i * 512u)) return false;
+    return true;
+}
+
 static inline void sdhci_init(SDHCI* s, uint64_t base) {
     s->regs = (volatile uint32_t*)base;
     s->rca = 0;

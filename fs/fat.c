@@ -1,6 +1,11 @@
 #include "types.h"
 
-typedef bool (*blk_read_t)(uint64_t lba, void* buf, void* priv);
+typedef bool (*blk_read_t)(uint64_t lba, uint32_t count, void* buf, void* priv);
+
+/* Upper bound on clusters merged into one block request (keeps a single
+ * request to ~128 KiB with 512-byte clusters, well inside every device's
+ * transfer limit). */
+#define FAT_MAX_RUN_CLUSTERS 256
 
 static const uint8_t FAT32_GUID[16] = {
     0x28, 0x73, 0x2A, 0xC1, 0x1F, 0xF8, 0xD2, 0x11,
@@ -24,10 +29,10 @@ static inline uint64_t rd64(const uint8_t* p) {
 /* Try GPT first, then MBR. Return partition start LBA. */
 static bool find_fat_part(blk_read_t read, void* priv, uint64_t* start) {
     uint8_t sec[512];
-    if (!read(0, sec, priv)) return false;
+    if (!read(0, 1, sec, priv)) return false;
     /* Try GPT: protective MBR has type 0xEE at offset 0x1C2 */
     if (sec[0x1C2] == 0xEE) {
-        if (!read(1, sec, priv)) return false;
+        if (!read(1, 1, sec, priv)) return false;
         if (sec[0] == 'E' && sec[1] == 'F' && sec[2] == 'I' && sec[3] == ' ' &&
             sec[4] == 'P' && sec[5] == 'A' && sec[6] == 'R' && sec[7] == 'T') {
             uint64_t elba = rd64(sec + 72);
@@ -39,7 +44,7 @@ static bool find_fat_part(blk_read_t read, void* priv, uint64_t* start) {
                 uint8_t ent[512];
                 /* elba can legitimately exceed 4 GiB; keep it 64-bit. */
                 uint64_t secn = elba + i / eper;
-                if (i % eper == 0 && !read(secn, ent, priv)) return false;
+                if (i % eper == 0 && !read(secn, 1, ent, priv)) return false;
                 uint32_t off = (i % eper) * esz;
                 bool match = true;
                 for (int j = 0; j < 16; j++)
@@ -71,12 +76,17 @@ typedef struct {
     uint32_t data_sec;
     blk_read_t read;
     void* priv;
+    /* Last FAT sector kept in `fat_buf`, so a sequential chain walk costs
+     * one sector read per 128 clusters instead of one per cluster. */
+    uint32_t fat_sec_no;
+    uint8_t fat_buf[512];
 } FAT32;
 
 static bool fat32_init(FAT32* fs, blk_read_t r, void* p, uint64_t plba) {
     fs->read = r; fs->priv = p; fs->part_lba = (uint32_t)plba;
+    fs->fat_sec_no = 0xFFFFFFFFu;   /* cache empty */
     uint8_t bpb[512];
-    if (!fs->read(fs->part_lba, bpb, fs->priv)) return false;
+    if (!fs->read(fs->part_lba, 1, bpb, fs->priv)) return false;
     if (bpb[510] != 0x55 || bpb[511] != 0xAA) return false;
     if (rd16(bpb + 11) != 512) return false;
     fs->sec_per_clus = bpb[13];
@@ -85,28 +95,32 @@ static bool fat32_init(FAT32* fs, blk_read_t r, void* p, uint64_t plba) {
     fs->root_clus = rd32(bpb + 44);
     fs->fat_sec = rd32(bpb + 36);
     fs->data_sec = fs->part_lba + fs->rsvd_sec + fs->fat_cnt * fs->fat_sec;
-    return fs->sec_per_clus != 0 && fs->fat_cnt != 0;
+    /* Directory clusters are read into a 4 KiB scratch buffer; reject larger
+     * cluster sizes instead of overflowing it. */
+    if (fs->sec_per_clus == 0 || fs->sec_per_clus > 8) return false;
+    return fs->fat_cnt != 0;
 }
 
-static uint32_t fat32_next_clus(FAT32* fs, uint32_t clus, uint8_t* tmp) {
+static uint32_t fat32_next_clus(FAT32* fs, uint32_t clus) {
     uint32_t fat_off = clus * 4;
-    if (!fs->read(fs->part_lba + fs->rsvd_sec + fat_off / 512, tmp, fs->priv)) return 0;
-    uint32_t val = rd32(tmp + fat_off % 512) & 0x0FFFFFFF;
+    uint32_t sec = fs->part_lba + fs->rsvd_sec + fat_off / 512;
+    if (sec != fs->fat_sec_no) {
+        if (!fs->read(sec, 1, fs->fat_buf, fs->priv)) return 0;
+        fs->fat_sec_no = sec;
+    }
+    uint32_t val = rd32(fs->fat_buf + fat_off % 512) & 0x0FFFFFFF;
     return (val >= 0x0FFFFFF8) ? 0 : val;
 }
 
-static bool fat32_read_clus(FAT32* fs, uint32_t clus, uint8_t* buf, uint8_t* tmp) {
-    (void)tmp; /* tmp is reserved for future double-buffering / prefetch. */
+static bool fat32_read_clus(FAT32* fs, uint32_t clus, uint8_t* buf) {
     uint32_t lba = fs->data_sec + (clus - 2) * fs->sec_per_clus;
-    for (uint32_t i = 0; i < fs->sec_per_clus; i++)
-        if (!fs->read(lba + i, buf + i * 512, fs->priv)) return false;
-    return true;
+    return fs->read(lba, fs->sec_per_clus, buf, fs->priv);
 }
 
 static bool fat32_find_file(FAT32* fs, const char name[11], uint32_t* clus, uint32_t* size, uint8_t* tmp) {
     uint32_t cur = fs->root_clus;
     while (cur) {
-        if (!fat32_read_clus(fs, cur, tmp, tmp + 512)) return false;
+        if (!fat32_read_clus(fs, cur, tmp)) return false;
         for (uint32_t i = 0; i < fs->sec_per_clus * 512; i += 32) {
             uint8_t* e = tmp + i;
             if (e[0] == 0x00) return false;
@@ -119,7 +133,7 @@ static bool fat32_find_file(FAT32* fs, const char name[11], uint32_t* clus, uint
             *size = rd32(e + 28);
             return true;
         }
-        cur = fat32_next_clus(fs, cur, tmp + 512);
+        cur = fat32_next_clus(fs, cur);
     }
     return false;
 }
@@ -152,16 +166,31 @@ bool fat32_read_file(blk_read_t read, void* priv, const char* name,
     if (!fat32_init(&fs, read, priv, plba)) return false;
     char name83[11];
     name_to_83(name, name83);
-    uint8_t tmp[1024];
+    uint8_t tmp[4096];   /* one cluster: dir scan and chain scratch */
     uint32_t fclus, fsize;
     if (!fat32_find_file(&fs, name83, &fclus, &fsize, tmp)) return false;
     if (fsize > max_size) fsize = max_size;
     *size = fsize;
     uint32_t off = 0;
+    uint32_t start_clus = fclus;
     while (fclus && off < fsize) {
-        if (!fat32_read_clus(&fs, fclus, buf + off, tmp)) return false;
-        off += fs.sec_per_clus * 512;
-        fclus = fat32_next_clus(&fs, fclus, tmp);
+        /* Follow the chain ahead and merge physically contiguous clusters
+         * into one block request: a sequentially written file is usually
+         * one long run, so a 1.9 MiB kernel costs a handful of requests
+         * instead of one per 512-byte cluster. */
+        uint32_t run = 1;
+        uint32_t next = fat32_next_clus(&fs, fclus);
+        while (next == fclus + run && run < FAT_MAX_RUN_CLUSTERS) {
+            fclus = next;
+            run++;
+            next = fat32_next_clus(&fs, fclus);
+        }
+        uint32_t secs = run * fs.sec_per_clus;
+        uint32_t lba = fs.data_sec + (start_clus - 2) * fs.sec_per_clus;
+        if (!fs.read(lba, secs, buf + off, fs.priv)) return false;
+        off += secs * 512;
+        start_clus = next;
+        fclus = next;
     }
     return true;
 }

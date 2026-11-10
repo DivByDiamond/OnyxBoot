@@ -40,6 +40,23 @@ static inline int boot_menu(UART* uart, BootDevice* devs, int ndevs) {
     uart_putchar(uart, '0' + ndevs - 1);
     uart_puts(uart, ", or enter for auto): ");
 
+    /* One selectable device means there is no choice to make: waiting for a
+     * keypress would only stall boot. Measured cost of the spin below when
+     * nothing is typed: ~8.3 s under QEMU TCG (20M MMIO polls) and seconds
+     * on real hardware, i.e. most of the boot-to-login time. */
+    int avail = 0;
+    int first = -1;
+    for (int i = 0; i < ndevs; i++) {
+        if (devs[i].avail) {
+            avail++;
+            if (first < 0) first = i;
+        }
+    }
+    if (avail == 1) {
+        uart_puts(uart, "auto\n");
+        return first;
+    }
+
     char c = 0;
     for (volatile int timeout = 0; timeout < 20000000; timeout++) {
         if (uart_data_ready(uart)) {

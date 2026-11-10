@@ -1,6 +1,6 @@
 #include "types.h"
 
-typedef bool (*blk_read_t)(uint64_t lba, void* buf, void* priv);
+typedef bool (*blk_read_t)(uint64_t lba, uint32_t count, void* buf, void* priv);
 
 #define S_IFMT  0xF000
 #define S_IFDIR 0x4000
@@ -28,9 +28,8 @@ static inline uint64_t erd64(const void* p) {
 
 static bool rd_blk(blk_read_t rd, void* priv, uint64_t plba, uint32_t b, uint32_t bs, uint8_t* buf) {
     uint32_t s = bs / 512;
-    for (uint32_t i = 0; i < s; i++)
-        if (!rd(plba + (uint64_t)b * s + i, buf + i * 512, priv)) return false;
-    return true;
+    /* One block request instead of one per 512-byte sector. */
+    return rd(plba + (uint64_t)b * s, s, buf, priv);
 }
 
 static uint32_t bmap_ext(blk_read_t rd, void* priv, uint64_t plba, uint32_t bs,
@@ -113,9 +112,9 @@ static bool read_inode(blk_read_t rd, void* priv, uint64_t plba, uint32_t bs,
 
 static bool find_ext4_part(blk_read_t read, void* priv, uint64_t* start) {
     uint8_t sec[512];
-    if (!read(0, sec, priv)) return false;
+    if (!read(0, 1, sec, priv)) return false;
     if (sec[0x1C2] == 0xEE) {
-        if (!read(1, sec, priv)) return false;
+        if (!read(1, 1, sec, priv)) return false;
         if (sec[0] == 'E' && sec[1] == 'F' && sec[2] == 'I' && sec[3] == ' ' &&
             sec[4] == 'P' && sec[5] == 'A' && sec[6] == 'R' && sec[7] == 'T') {
             uint32_t num = erd32(sec + 80), esz = erd32(sec + 84);
@@ -126,7 +125,7 @@ static bool find_ext4_part(blk_read_t read, void* priv, uint64_t* start) {
                 uint8_t ent[512];
                 /* elba can legitimately exceed 4 GiB; keep it 64-bit. */
                 uint64_t sn = elba + i / eper;
-                if (i % eper == 0 && !read(sn, ent, priv)) return false;
+                if (i % eper == 0 && !read(sn, 1, ent, priv)) return false;
                 uint32_t off = (i % eper) * esz;
                 bool match = true;
                 for (int j = 0; j < 16; j++)
@@ -150,10 +149,11 @@ bool ext4_read_file(blk_read_t read, void* priv, const char* path,
     uint64_t part_lba;
     if (!find_ext4_part(read, priv, &part_lba)) return false;
     uint8_t tmp[4096], ino[256];
-    if (!read(part_lba + 2, tmp, priv)) return false;
+    if (!read(part_lba + 2, 1, tmp, priv)) return false;
     if (erd16(tmp + 56) != 0xEF53) return false;
     bool extents = (erd32(tmp + 96) & 0x40) != 0;
     uint32_t bs = 1024u << erd32(tmp + 24);
+    if (bs > sizeof(tmp)) return false;   /* block scratch is 4 KiB */
     uint32_t ipg = erd32(tmp + 40), isize = erd16(tmp + 88);
     if (!isize) isize = 128;
     uint32_t bgd_base = erd32(tmp + 20) + 1;

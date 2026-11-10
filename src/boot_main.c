@@ -11,7 +11,7 @@ extern uint8_t _stack_end[];
 
 VirtQueue g_vq __attribute__((aligned(4096)));
 
-typedef bool (*blk_read_t)(uint64_t lba, void* buf, void* priv);
+typedef bool (*blk_read_t)(uint64_t lba, uint32_t count, void* buf, void* priv);
 
 bool fat32_read_file(blk_read_t read, void* priv, const char* name,
                      uint8_t* buf, uint32_t* size, uint32_t max_size);
@@ -19,11 +19,11 @@ bool ext4_read_file(blk_read_t read, void* priv, const char* path,
                     uint8_t* buf, uint32_t* size, uint32_t max_size);
 
 /* Wrappers for VirtIO and SDHCI read_sector */
-static bool vio_read_wrap(uint64_t lba, void* buf, void* priv) {
-    return vio_read_sector((VirtIOBlock*)priv, lba, buf);
+static bool vio_read_wrap(uint64_t lba, uint32_t count, void* buf, void* priv) {
+    return vio_read_sectors((VirtIOBlock*)priv, lba, count, buf);
 }
-static bool sdhci_read_wrap(uint64_t lba, void* buf, void* priv) {
-    return sdhci_read_sector((SDHCI*)priv, lba, buf);
+static bool sdhci_read_wrap(uint64_t lba, uint32_t count, void* buf, void* priv) {
+    return sdhci_read_sectors((SDHCI*)priv, lba, count, buf);
 }
 
 /* ----------------------------------------------------------------------- */

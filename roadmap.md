@@ -16,6 +16,8 @@
 
 ## v0.4 - Стабильность
 - [x] Boot menu с timeout auto-select
+- [x] Меню не ждёт ввода, когда доступно одно устройство (boot→login
+  9.2 s → 0.55 s в QEMU; многодисковый путь не изменён)
 - [x] Поддержка нескольких устройств
 - [x] PHDRS в linker.ld (без RWX warning)
 - [x] S-mode совместимость (a0 вместо csrr mhartid)

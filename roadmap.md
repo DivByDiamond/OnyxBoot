@@ -60,3 +60,7 @@
 - [ ] Проверка на реальном Milk-V Duo S
 - [ ] Стабильная интеграция с OnyxOS
 - [ ] CI прогоняет все QEMU тесты
+
+## Quality gate (2026-11-15)
+
+- [x] `c27cc31`: сборка не скрывает unused-function warnings; build и все четыре QEMU-сценария проходят.

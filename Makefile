@@ -20,7 +20,7 @@ CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany \
     -Os \
     -ffunction-sections -fdata-sections \
     -fomit-frame-pointer -fno-ident -g0 \
-    -ffreestanding -nostdlib -Iinclude -Wall -Wextra -Wno-unused-function
+    -ffreestanding -nostdlib -Iinclude -Wall -Wextra
 
 LDFLAGS = -T linker.ld -nostdlib \
     -Wl,--gc-sections -Wl,--strip-all -Wl,-n

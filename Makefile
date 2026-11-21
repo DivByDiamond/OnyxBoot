@@ -29,6 +29,11 @@ SRCS = src/boot_entry.c src/boot_main.c src/string.c fs/fat.c fs/ext4.c
 
 all: bootloader.bin
 
+# Unified ecosystem entry point: every repo answers to `make build` and
+# `make test`. Here build is just the default target, test boots the
+# built bootloader in QEMU (test-all runs the full board matrix).
+build: all
+
 bootloader.elf: $(SRCS)
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
@@ -44,4 +49,4 @@ test:
 test-all:
 	./test/test_all.sh
 
-.PHONY: all clean test test-all
+.PHONY: all build clean test test-all
